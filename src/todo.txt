@@ -1,0 +1,3 @@
+Gör om Board till en array. Är snabbare.
+
+Implementera get_possible_moves()
