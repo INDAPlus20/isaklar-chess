@@ -16,7 +16,7 @@ pub struct Game {
     /* save board, active colour, ... */
     state: GameState,
     active_color: Color,
-    board: Vec<Option<Piece>>,
+    board: [Option<Piece>; 64],
 }
 
 impl Game {
@@ -50,16 +50,70 @@ impl Game {
     /// new positions of that piece. Don't forget to the rules for check.
     ///
     /// (optional) Don't forget to include en passent and castling.
+
+    /// TODO
     pub fn get_possible_moves(&self, _position: String) -> Option<Vec<String>> {
+
+        let directions = self.board[Game::as_coordinate(&_position)].unwrap().title().directions();
+
+        let moves = if directions[0].2{
+
+            // If the moves are recursive i.e Queen, Bishop, Rook
+            let mut moves: Vec<String> = Vec::new();
+
+            for d in directions{
+                for i  in 0..{
+                    
+                    if 0 <= d.0*i && d.0*i <= 7 {
+
+                        // Calculate move coordinate 
+                        let temp_move = (i*(d.0 + d.1*8)) as usize + Game::as_coordinate(&_position);
+
+                        // Check if occupied
+                        if self.board[temp_move].is_some() {
+
+                            // Check occupying piece
+                            if self.board[temp_move].unwrap().color() == self.active_color{
+                                break;
+
+                            } else{
+                                
+                                moves.push(Game::as_standard_notation(&temp_move));
+                                break;
+                            }
+
+                        } else {
+
+                            moves.push(Game::as_standard_notation(&temp_move));
+                            continue;
+                        }
+                        
+                    } else{
+                        continue;
+                    }
+                    
+                }
+            }
+            // Return
+            moves
+
+        } else{
+            // If the moves are simple i.e King, Knight
+            // TODO
+            vec![]
+        };
+        
+        //TODO
         None
+
     }
 
-    pub fn get_board(&self) -> &Vec<Option<Piece>> {
+    pub fn get_board(&self) -> &[Option<Piece>; 64] {
         &self.board
     }
 
     // Converts standard chess notation into indexable values
-    pub fn as_coordinate(input: String) -> u32 {
+    pub fn as_coordinate(input: &String) -> usize {
         let chars: Vec<char> = input.chars().collect();
         let file = match chars[0] {
             'A' => 0,
@@ -75,12 +129,31 @@ impl Game {
 
         let rank: u32 = chars[1].to_digit(10).unwrap()*8;
 
-        rank + file
+        (rank + file) as usize
+    }
+
+    pub fn as_standard_notation(input: &usize) -> String{
+        let mut file = match input % 8 {
+            0 => "A".to_string(),
+            1 => "B".to_string(),
+            2 => "C".to_string(),
+            3 => "D".to_string(),
+            4 => "E".to_string(),
+            5 => "F".to_string(),
+            6 => "G".to_string(),
+            7 => "H".to_string(),
+            _ => "A".to_string(),
+        };
+
+        let rank = (input/8).to_string();
+
+        file.push_str(&rank);
+        file
     }
 }
 
-fn generate_board() -> Vec<Option<Piece>> {
-    vec![
+fn generate_board() -> [Option<Piece>; 64] {
+    [
         Some(Piece::new(Color::White, PieceType::Rook)),
         Some(Piece::new(Color::White, PieceType::Knight)),
         Some(Piece::new(Color::White, PieceType::Bishop)),
@@ -202,7 +275,7 @@ mod tests {
 
     #[test]
     fn convert_input_to_coordinates() {
-        assert_eq!(Game::as_coordinate("B3".to_string()), 25)
+        assert_eq!(Game::as_coordinate(&"B3".to_string()), 25)
     }
 
     #[test]
@@ -213,5 +286,10 @@ mod tests {
             game.get_board()[0].unwrap().title().directions()[0],
             (-1, 0, true)
         );
+    }
+
+    #[test]
+    fn convert_coordinates_to_standard_notation(){
+        assert_eq!(Game::as_standard_notation(25), &"B3".to_string());
     }
 }

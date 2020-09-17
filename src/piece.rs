@@ -23,6 +23,10 @@ impl Piece {
     pub fn moves(&self, position: u32) -> Vec<u32> {
         vec![]
     }
+
+    pub fn color(&self) -> Color{
+        self.color
+    }
 }
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub enum PieceType {
