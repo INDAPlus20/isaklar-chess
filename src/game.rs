@@ -53,8 +53,8 @@ impl Game {
 
     /// TODO
     pub fn get_possible_moves(&self, _position: String) -> Option<Vec<String>> {
-
-        let directions = self.board[Game::as_coordinate(&_position)].unwrap().title().directions();
+        let position = Game::as_coordinate(&_position);
+        let directions = self.board[position].unwrap().title().directions();
 
         let moves = if directions[0].2{
 
@@ -64,10 +64,11 @@ impl Game {
             for d in directions{
                 for i  in 0..{
                     
-                    if 0 <= d.0*i && d.0*i <= 7 {
+                    // If the move is in bounds of the board
+                    if 0 <= d.0*i + (position % 8) as i32 && d.0*i + (position % 8) as i32 <= 7 {
 
                         // Calculate move coordinate 
-                        let temp_move = (i*(d.0 + d.1*8)) as usize + Game::as_coordinate(&_position);
+                        let temp_move = (i*(d.0 + d.1*8)) as usize + position;
 
                         // Check if occupied
                         if self.board[temp_move].is_some() {
