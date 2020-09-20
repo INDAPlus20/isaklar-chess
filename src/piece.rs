@@ -20,6 +20,7 @@ impl Piece {
         &self.title
     }
 
+    // Not using
     pub fn moves(&self, position: u32) -> Vec<u32> {
         vec![]
     }
@@ -39,6 +40,9 @@ pub enum PieceType {
 }
 
 impl PieceType {
+
+    // Set the moves for all PieceTypes as offsets from current position (horizontal, vertical, repeating)
+
     pub fn directions(&self) -> Vec<(i32, i32, bool)> {
         match &self {
             PieceType::King => vec![
@@ -73,7 +77,7 @@ impl PieceType {
                 (-2, -1, false),
             ],
             PieceType::Rook => vec![(-1, 0, true), (1, 0, true), (0, -1, true), (0, 1, true)],
-            PieceType::Pawn => vec![(-1, 0, false), (1, 0, false)],
+            PieceType::Pawn => vec![(0, 1, false), (0, -1, false)],
         }
     }
 }

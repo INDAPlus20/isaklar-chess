@@ -53,39 +53,41 @@ impl Game {
 
     /// TODO
     pub fn get_possible_moves(&self, _position: String) -> Option<Vec<String>> {
+
         let position = Game::as_coordinate(&_position);
         let directions = self.board[position].unwrap().title().directions();
+        println!("{:?}", directions);
 
         let moves = if directions[0].2{
 
-            // If the moves are recursive i.e Queen, Bishop, Rook
+            // If the moves are repeating i.e Queen, Bishop, Rook
             let mut moves: Vec<String> = Vec::new();
 
             for d in directions{
-                for i  in 0..{
-                    
-                    // If the move is in bounds of the board
-                    if 0 <= d.0*i + (position % 8) as i32 && d.0*i + (position % 8) as i32 <= 7 {
 
-                        // Calculate move coordinate 
-                        let temp_move = (i*(d.0 + d.1*8)) as usize + position;
+                for i  in 0..8{
+                    // Calculate move coordinate 
+                    let temp_move = ((i*(d.0 + d.1*8))  + (position as i32));
+
+                    // If the move is in bounds of the board
+                    if 0 <= d.0*i + (position % 8) as i32 && d.0*i + (position % 8) as i32 <= 7 && temp_move <= 63 && temp_move >=0 {
 
                         // Check if occupied
-                        if self.board[temp_move].is_some() {
+                        if self.board[temp_move as usize].is_some() {
 
                             // Check occupying piece
-                            if self.board[temp_move].unwrap().color() == self.active_color{
+                            if self.board[temp_move as usize].unwrap().color() == self.active_color{
                                 break;
 
                             } else{
                                 
-                                moves.push(Game::as_standard_notation(&temp_move));
+                                moves.push(Game::as_standard_notation(&(temp_move as usize)));
                                 break;
                             }
 
                         } else {
 
-                            moves.push(Game::as_standard_notation(&temp_move));
+                            moves.push(Game::as_standard_notation(&(temp_move as usize)));
                             continue;
                         }
                         
@@ -95,17 +97,49 @@ impl Game {
                     
                 }
             }
+
             // Return
             moves
 
         } else{
-            // If the moves are simple i.e King, Knight
+            
+            // If the moves are not repeating i.e King, Knight, Pawn
             // TODO
-            vec![]
+            let mut moves: Vec<String> = Vec::new();
+
+            for d in directions{
+
+                // Calculate move coordinate 
+                let temp_move = (d.0 + d.1*8) + (position as i32);
+                println!("temp move: {:?}", temp_move);
+                if 0 <= d.0 + (position % 8) as i32 && d.0 + (position % 8) as i32 <= 7 && temp_move <= 63 && temp_move >=0 {
+                    if self.board[temp_move as usize].is_some() {
+
+                        // Check occupying piece
+                        if self.board[temp_move as usize].unwrap().color() != self.active_color{
+                            moves.push(Game::as_standard_notation(&(temp_move as usize)));
+                            println!{"Enemy piece"};
+                        }
+
+                    } else {
+                        moves.push(Game::as_standard_notation(&(temp_move as usize)));
+                        println!{"No piece"};
+                    }
+                }
+            }
+
+
+            moves
         };
         
-        //TODO
-        None
+
+        
+        if moves.len() > 0{
+            Some(moves)
+        } else{
+            None
+        }
+        
 
     }
 
@@ -128,8 +162,9 @@ impl Game {
             _ => 0,
         };
 
-        let rank: u32 = chars[1].to_digit(10).unwrap()*8;
-
+        let rank: u32 = (chars[1].to_digit(10).unwrap() - 1) *8;
+        println!("Rank: {:?}", rank);
+        println!("File: {:?}", file);
         (rank + file) as usize
     }
 
@@ -146,11 +181,13 @@ impl Game {
             _ => "A".to_string(),
         };
 
-        let rank = (input/8).to_string();
+        let rank = ((input/ 8) + 1).to_string();
 
         file.push_str(&rank);
         file
     }
+
+    //pub fn move_in_bounds()
 }
 
 fn generate_board() -> [Option<Piece>; 64] {
@@ -291,6 +328,15 @@ mod tests {
 
     #[test]
     fn convert_coordinates_to_standard_notation(){
-        assert_eq!(Game::as_standard_notation(25), &"B3".to_string());
+        assert_eq!(Game::as_standard_notation(&(25 as usize)), "B3".to_string());
+    }
+
+    #[test]
+    fn get_possible_moves_from_board_init(){
+        let game = Game::new();
+
+        assert_eq!(
+            game.get_possible_moves(String::from("B1")).unwrap(), vec![String::from("A3"), String::from("C3")]
+        );
     }
 }
