@@ -5,28 +5,39 @@ pub enum Color {
     Black,
     White,
 }
+
+impl Color{
+    pub fn forward(&self) -> i32{
+        if self == &Color::White {
+            1
+        }
+        else {
+            -1
+        }
+    }
+}
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub struct Piece {
     color: Color,
     title: PieceType,
+    has_moved: bool
 }
 
 impl Piece {
     pub fn new(color: Color, title: PieceType) -> Piece {
-        Piece { color, title }
+        Piece { color, title, has_moved: false }
     }
 
-    pub fn title(&self) -> &PieceType {
-        &self.title
+    pub fn title(&self) -> PieceType {
+        self.title
     }
 
-    // Not using
-    pub fn moves(&self, position: u32) -> Vec<u32> {
-        vec![]
-    }
-
-    pub fn color(&self) -> Color{
+    pub fn color(&self) -> Color {
         self.color
+    }
+
+    pub fn has_moved(&self) -> bool {
+        self.has_moved
     }
 }
 #[derive(PartialEq, Debug, Copy, Clone)]
@@ -40,7 +51,6 @@ pub enum PieceType {
 }
 
 impl PieceType {
-
     // Set the moves for all PieceTypes as offsets from current position (horizontal, vertical, repeating)
 
     pub fn directions(&self) -> Vec<(i32, i32, bool)> {
@@ -77,7 +87,7 @@ impl PieceType {
                 (-2, -1, false),
             ],
             PieceType::Rook => vec![(-1, 0, true), (1, 0, true), (0, -1, true), (0, 1, true)],
-            PieceType::Pawn => vec![(0, 1, false), (0, -1, false)],
+            PieceType::Pawn => vec![(0, 1, false), (0, 2, false), (-1, 1, false), (-1, 1, false)],
         }
     }
 }
