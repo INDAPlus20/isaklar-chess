@@ -6,12 +6,11 @@ pub enum Color {
     White,
 }
 
-impl Color{
-    pub fn forward(&self) -> i32{
+impl Color {
+    pub fn forward(&self) -> i32 {
         if self == &Color::White {
             1
-        }
-        else {
+        } else {
             -1
         }
     }
@@ -20,12 +19,16 @@ impl Color{
 pub struct Piece {
     color: Color,
     title: PieceType,
-    has_moved: bool
+    has_moved: bool,
 }
 
 impl Piece {
     pub fn new(color: Color, title: PieceType) -> Piece {
-        Piece { color, title, has_moved: false }
+        Piece {
+            color,
+            title,
+            has_moved: false,
+        }
     }
 
     pub fn title(&self) -> PieceType {
@@ -89,6 +92,19 @@ impl PieceType {
             PieceType::Rook => vec![(-1, 0, true), (1, 0, true), (0, -1, true), (0, 1, true)],
             PieceType::Pawn => vec![(0, 1, false), (0, 2, false), (-1, 1, false), (-1, 1, false)],
         }
+    }
+}
+
+impl fmt::Display for Piece {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", match self.title() {
+            PieceType::King    => if self.color == Color::White {"K  "} else {"k  "},
+            PieceType::Queen   => if self.color == Color::White {"Q  "} else {"q  "},
+            PieceType::Bishop  => if self.color == Color::White {"B  "} else {"b  "},
+            PieceType::Knight  => if self.color == Color::White {"Kn "} else {"kn "},
+            PieceType::Rook    => if self.color == Color::White {"R  "} else {"r  "},
+            PieceType::Pawn    => if self.color == Color::White {"P  "} else {"p  "},
+        })
     }
 }
 

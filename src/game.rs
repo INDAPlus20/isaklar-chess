@@ -1,5 +1,6 @@
 use crate::piece::*;
 use std::fmt;
+use std::collections::HashMap;
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum GameState {
     InProgress,
@@ -17,6 +18,7 @@ pub struct Game {
     state: GameState,
     active_color: Color,
     board: [Option<Piece>; 64],
+    possible_moves: HashMap<String, Vec<String>>
 }
 
 impl Game {
@@ -27,13 +29,24 @@ impl Game {
             state: GameState::InProgress,
             active_color: Color::White,
             board: generate_board(),
+            possible_moves: Game::calculate_all_possible_moves(generate_board())
         }
     }
 
     /// If the current game state is InProgress and the move is legal,
     /// move a piece and return the resulting state of the game.
-    pub fn make_move(&mut self, _from: String, _to: String) -> Option<GameState> {
-        None
+    pub fn make_move(&mut self, from: String, to: String) -> Option<GameState> {
+        // If move is legal
+        if get_possible_moves(self.board, from).unwrap().contains(&to) {
+            // If capturing move
+            if self.board[as_coordinate(to)].is_some(){
+                
+                make_capturing_move(self, from, to);
+
+            }
+        } else {
+            None
+        }
     }
 
     /// Set the piece type that a peasant becames following a promotion.
@@ -46,114 +59,139 @@ impl Game {
         self.state
     }
 
+
+    fn calculate_all_possible_moves(board: [Option<Piece>; 64] ) -> HashMap<String, Vec<String>>{
+        for square_index in 0..64{
+            if board[square_index].is_none(){
+                continue;
+            }
+
+            let moves = calculate_possible_moves(&board, as_standard_notation(&square_index));
+            if moves.is_some() {
+                
+            }
+
+        }
+
+        vec![(String::from(""), None)]
+    }
     /// If a piece is standing on the given tile, return all possible
     /// new positions of that piece. Don't forget to the rules for check.
     ///
     /// (optional) Don't forget to include en passent and castling.
 
     /// TODO
-    pub fn get_possible_moves(&self, position: String) -> Option<Vec<String>> {
-        let position = as_coordinate(&position);
-        let piece = self.board[position].unwrap();
-        let directions = piece.title().directions();
-        println!("{:?}", directions);
-
-        let mut moves: Vec<String> = Vec::new();
-
-        if piece.title() == PieceType::Pawn {
-
-            for (file_move, rank_move, _) in directions {
-
-                let temp_move = (file_move + rank_move * 8 * piece.color().forward()) + (position as i32);
-
-                if move_in_bounds(temp_move, position, file_move){
-
-                    if self.board[temp_move as usize].is_some() {
-
-                        // Check occupying piece
-                        if self.board[temp_move as usize].unwrap().color() != self.active_color && file_move != 0 {
-                            moves.push(as_standard_notation(&(temp_move as usize)));
-                            println! {"Enemy piece"};
-                        }
-                    } else if file_move == 0 && rank_move == 2 && !piece.has_moved() {
-                        moves.push(as_standard_notation(&(temp_move as usize)));
-                        println! {"No piece"};
-
-                    } else if file_move == 0{
-                        moves.push(as_standard_notation(&(temp_move as usize)));
-                        println! {"No piece"};
-                    }
-                }
-            }
-
-        } else if directions[0].2 {
-            // If the moves are repeating i.e Queen, Bishop, Rook
-
-            for (file_move, rank_move, _) in directions {
-                for i in 0..8 {
-                    // Calculate move coordinate
-                    let temp_move = (i * (file_move + rank_move * 8)) + (position as i32);
-
-                    // If the move is in bounds of the board
-                    if move_in_bounds(temp_move, position, file_move){
-                        // Check if occupied
-                        if self.board[temp_move as usize].is_some() {
-                            // Check occupying piece
-                            if self.board[temp_move as usize].unwrap().color() == self.active_color
-                            {
-                                break;
-                            } else {
-                                moves.push(as_standard_notation(&(temp_move as usize)));
-                                break;
-                            }
-                        } else {
-                            moves.push(as_standard_notation(&(temp_move as usize)));
-                            continue;
-                        }
-                    } else {
-                        continue;
-                    }
-                }
-            }
-        } else {
-            // If the moves are not repeating i.e King, Knight
-            // TODO
-            for (file_move, rank_move, _) in directions {
-                // Calculate move coordinate
-                let temp_move = (file_move + rank_move * 8) + (position as i32);
-                println!("temp move: {:?}", temp_move);
-                if move_in_bounds(temp_move, position, file_move){
-                    if self.board[temp_move as usize].is_some() {
-                        // Check occupying piece
-                        if self.board[temp_move as usize].unwrap().color() != self.active_color {
-                            moves.push(as_standard_notation(&(temp_move as usize)));
-                            println! {"Enemy piece"};
-                        }
-                    } else {
-                        moves.push(as_standard_notation(&(temp_move as usize)));
-                        println! {"No piece'"};
-                    }
-                }
-            }
-        }
-
-        if moves.len() > 0 {
-            Some(moves)
-        } else {
-            None
-        }
+    pub fn get_possible_moves(&self, position: String) -> Option<Vec<String>>{
+        self.possible_moves()
     }
 
     pub fn get_board(&self) -> &[Option<Piece>; 64] {
         &self.board
     }
+
+
+    fn regular_move(&mut self, from: String, to: String){
+        //self.board[from.]
+    }
+
+    fn capturing_move(&self, from: String, to: String){
+
+    }
 }
 
-pub fn move_in_bounds(to: i32, from: usize, file_move: i32) -> bool{
-    0 <= file_move + (from % 8) as i32
-    && file_move + (from % 8) as i32 <= 7
-    && to <= 63
-    && to >= 0
+pub fn calculate_possible_moves(board: &[Option<Piece>; 64], position: String) -> Option<Vec<String>> {
+    let position = as_coordinate(&position);
+    let piece = board[position].unwrap();
+    let directions = piece.title().directions();
+    println!("{:?}", directions);
+
+    let mut moves: Vec<String> = Vec::new();
+
+    if piece.title() == PieceType::Pawn {
+        // Pawn moves
+        for (file_move, rank_move, _) in directions {
+            let temp_move =
+                (file_move + rank_move * 8 * piece.color().forward()) + (position as i32);
+
+            if move_in_bounds(temp_move, position, file_move) {
+                if board[temp_move as usize].is_some() {
+                    // Diagonal move
+                    if board[temp_move as usize].unwrap().color() != piece.color()
+                        && file_move != 0
+                    {
+                        moves.push(as_standard_notation(&(temp_move as usize)));
+                        println! {"Enemy piece"};
+                    }
+                // Straight move 
+                } else if file_move == 0 && rank_move == 2 && !piece.has_moved() {
+                    moves.push(as_standard_notation(&(temp_move as usize)));
+                    println! {"No piece"};
+                } else if file_move == 0 {
+                    moves.push(as_standard_notation(&(temp_move as usize)));
+                    println! {"No piece"};
+                }
+            }
+        }
+    } else if directions[0].2 {
+        // If the moves are repeating i.e Queen, Bishop, Rook
+
+        for (file_move, rank_move, _) in directions {
+            for i in 0..8 {
+                // Calculate move coordinate
+                let temp_move = (i * (file_move + rank_move * 8)) + (position as i32);
+
+                // If the move is in bounds of the board
+                if move_in_bounds(temp_move, position, file_move) {
+                    // Check if occupied
+                    if board[temp_move as usize].is_some() {
+                        // Check occupying piece
+                        if board[temp_move as usize].unwrap().color() == piece.color()
+                        {
+                            break;
+                        } else {
+                            moves.push(as_standard_notation(&(temp_move as usize)));
+                            break;
+                        }
+                    } else {
+                        moves.push(as_standard_notation(&(temp_move as usize)));
+                        continue;
+                    }
+                } else {
+                    continue;
+                }
+            }
+        }
+    } else {
+        // If the moves are not repeating i.e King, Knight
+        // TODO
+        for (file_move, rank_move, _) in directions {
+            // Calculate move coordinate
+            let temp_move = (file_move + rank_move * 8) + (position as i32);
+            println!("temp move: {:?}", temp_move);
+            if move_in_bounds(temp_move, position, file_move) {
+                if board[temp_move as usize].is_some() {
+                    // Check occupying piece
+                    if board[temp_move as usize].unwrap().color() != piece.color() {
+                        moves.push(as_standard_notation(&(temp_move as usize)));
+                        println! {"Enemy piece"};
+                    }
+                } else {
+                    moves.push(as_standard_notation(&(temp_move as usize)));
+                    println! {"No piece'"};
+                }
+            }
+        }
+    }
+
+    if moves.len() > 0 {
+        Some(moves)
+    } else {
+        None
+    }
+}
+
+pub fn move_in_bounds(to: i32, from: usize, file_move: i32) -> bool {
+    0 <= file_move + (from % 8) as i32 && file_move + (from % 8) as i32 <= 7 && to <= 63 && to >= 0
 }
 
 // Converts standard chess notation into indexable values
@@ -265,6 +303,8 @@ fn generate_board() -> [Option<Piece>; 64] {
     ]
 }
 
+
+
 /// Implement print routine for Game.
 ///
 /// Output example:
@@ -278,13 +318,26 @@ fn generate_board() -> [Option<Piece>; 64] {
 /// | P  P  P  P  P  P  P  P |
 /// | R  Kn B  K  Q  B  Kn R |
 /// |:----------------------:|
-impl fmt::Debug for Game {
+impl fmt::Display for Game {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         /* build board representation string */
-
-        write!(f, "")
+        write!(f, "A  B  C  D  E  F  G  H \n")?;
+        for rank in (0..8).rev(){
+            for file in 0..8{
+                
+                if self.get_board()[file + rank * 8].is_some(){
+                    write!(f,"{}", self.get_board()[file + rank * 8].unwrap())?;
+                } else {
+                    write!(f, "*  ")?;
+                }
+            }
+            write!(f, "{} \n", rank + 1)?;
+        }
+        write!(f, "\n")
     }
 }
+
+
 
 // --------------------------
 // ######### TESTS ##########
@@ -293,10 +346,10 @@ impl fmt::Debug for Game {
 #[cfg(test)]
 mod tests {
     use super::Color;
-    use super::*;
     use super::GameState;
     use super::Piece;
     use super::PieceType;
+    use super::*;
     // example test
     // check that game state is in progress after initialisation
     #[test]
@@ -348,7 +401,7 @@ mod tests {
     }
 
     #[test]
-    fn get_pawn_possible_moves(){
+    fn get_pawn_possible_moves() {
         let game = Game::new();
 
         assert_eq!(
@@ -356,4 +409,13 @@ mod tests {
             vec![String::from("B3"), String::from("B4")]
         );
     }
+
+    #[test]
+    fn printable_board(){
+        let game = Game::new();
+
+        print!("{}", game);
+        
+    }
+    
 }
