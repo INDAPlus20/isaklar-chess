@@ -97,21 +97,55 @@ impl PieceType {
 
 impl fmt::Display for Piece {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", match self.title() {
-            PieceType::King    => if self.color == Color::White {"K  "} else {"k  "},
-            PieceType::Queen   => if self.color == Color::White {"Q  "} else {"q  "},
-            PieceType::Bishop  => if self.color == Color::White {"B  "} else {"b  "},
-            PieceType::Knight  => if self.color == Color::White {"Kn "} else {"kn "},
-            PieceType::Rook    => if self.color == Color::White {"R  "} else {"r  "},
-            PieceType::Pawn    => if self.color == Color::White {"P  "} else {"p  "},
-        })
+        write!(
+            f,
+            "{}",
+            match self.title() {
+                PieceType::King =>
+                    if self.color == Color::White {
+                        "K  "
+                    } else {
+                        "k  "
+                    },
+                PieceType::Queen =>
+                    if self.color == Color::White {
+                        "Q  "
+                    } else {
+                        "q  "
+                    },
+                PieceType::Bishop =>
+                    if self.color == Color::White {
+                        "B  "
+                    } else {
+                        "b  "
+                    },
+                PieceType::Knight =>
+                    if self.color == Color::White {
+                        "Kn "
+                    } else {
+                        "kn "
+                    },
+                PieceType::Rook =>
+                    if self.color == Color::White {
+                        "R  "
+                    } else {
+                        "r  "
+                    },
+                PieceType::Pawn =>
+                    if self.color == Color::White {
+                        "P  "
+                    } else {
+                        "p  "
+                    },
+            }
+        )
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fmt;
+    //use std::fmt;
 
     #[test]
     fn get_piece_move_directions() {
