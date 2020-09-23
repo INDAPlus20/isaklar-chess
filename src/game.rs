@@ -113,10 +113,73 @@ fn move_piece(mut board: [Option<Piece>; 64], from: String, to: String) -> [Opti
 
     board
 }
+
 fn board_in_check(
     board: [Option<Piece>; 64],
     possible_moves: &HashMap<String, Vec<String>>,
 ) -> Option<GameState> {
+    let black_king_position = board
+        .iter()
+        .position(|&r| {
+            r.is_some()
+                && r.unwrap().title() == PieceType::King
+                && r.unwrap().color() == Color::Black
+        })
+        .unwrap();
+    // Do a recursive search of the nearby tiles to see if anyone checks the king
+    let directions = PieceType::Queen.directions();
+    for (file_move, rank_move, _) in directions {
+        for i in 1..8 {
+            // Calculate move coordinate
+            let temp_move = (i * (file_move + rank_move * 8)) + (black_king_position as i32);
+
+            // If the move is in bounds of the board
+            if move_in_bounds(temp_move, black_king_position, file_move) {
+                // Check if occupied
+                if let Some(piece) = board[temp_move as usize] {
+                    // Check occupying piece
+                    if piece.color() == Color::Black {
+                        continue;
+                    } else {
+                        if file_move == 0 || rank_move == 0 {
+                            match piece.title() {
+                                PieceType::Queen => return Some(GameState::BlackCheck),
+                                PieceType::Rook => return Some(GameState::BlackCheck),
+                                _ => continue
+                            }
+                        } else if rank_move == -1 && piece.title() == PieceType::Pawn {
+                            return Some(GameState::BlackCheck)
+                        } else {
+                            match piece.title() {
+                                PieceType::Queen => return Some(GameState::BlackCheck),
+                                PieceType::Bishop => return Some(GameState::BlackCheck),
+                                _ => continue
+                            }
+                        }
+                    }
+                } else {
+
+                    continue;
+                }
+            } else {
+                continue;
+            }
+        }
+    }
+
+    
+    ////////////////////////////////////////////////////////////////Check for knight pieces
+
+
+    let white_king_position = board
+        .iter()
+        .position(|&r| {
+            r.is_some()
+                && r.unwrap().title() == PieceType::King
+                && r.unwrap().color() == Color::White
+        })
+        .unwrap();
+
     for (_piece, move_list) in possible_moves.iter() {
         for square in move_list {
             if let Some(piece) = board[as_coordinate(square)] {
@@ -146,131 +209,9 @@ fn calculate_all_possible_moves(board: [Option<Piece>; 64]) -> HashMap<String, V
     }
     map
 }
-/////////////////////////////////// INFINITE RECURSION BOIIIIIIIIIIIIIIIIIIIIIIIS //////////////////////////////////////
+
 // Calculates the possible moves for a piece
 pub fn calculate_possible_moves(
-    board: &[Option<Piece>; 64],
-    position: String,
-) -> Option<Vec<String>> {
-    let position = as_coordinate(&position);
-    let piece = board[position].unwrap();
-    let directions = piece.title().directions();
-
-    let mut moves: Vec<String> = Vec::new();
-
-    if piece.title() == PieceType::Pawn {
-        // Pawn moves
-        for (file_move, rank_move, _) in directions {
-            let temp_move =
-                (file_move + rank_move * 8 * piece.color().forward()) + (position as i32);
-
-            if move_in_bounds(temp_move, position, file_move) {
-                if board[temp_move as usize].is_some() {
-                    // Diagonal move
-                    if board[temp_move as usize].unwrap().color() != piece.color() && file_move != 0
-                    {
-                        //////////////////////// THIS IS DUMB AS SHIT
-                        if let Some(state) = board_in_check(//////////////////////// THIS IS DUMB AS SHIT
-                            move_piece(
-                                board.clone(),//////////////////////// THIS IS DUMB AS SHIT
-                                as_standard_notation(&position),//////////////////////// THIS IS DUMB AS SHIT
-                                as_standard_notation(&(temp_move as usize)),//////////////////////// THIS IS DUMB AS SHIT
-                            ),
-                         &calculate_all_possible_moves(move_piece(//////////////////////// THIS IS DUMB AS SHIT
-                            board.clone(),
-                            as_standard_notation(&position),
-                            as_standard_notation(&(temp_move as usize)),
-                        )),
-                        ) { match (state, piece.color()){
-                            (GameState::BlackCheck, Color::Black) => moves.push(as_standard_notation(&(temp_move as usize))),
-                            (GameState::WhiteCheck, Color::White) => moves.push(as_standard_notation(&(temp_move as usize))),
-                            (_, _) => ()
-                        }}
-                        //////////////////////// THIS IS DUMB AS SHIT
-                        
-                    }
-                // Straight move
-                } else if file_move == 0 && rank_move == 2 && !piece.has_moved() {
-
-                    //////////////////////// THIS IS DUMB AS SHIT
-                    if let Some(state) = board_in_check( //////////////////////// THIS IS DUMB AS SHIT
-                        move_piece(//////////////////////// THIS IS DUMB AS SHIT
-                            board.clone(),
-                            as_standard_notation(&position),//////////////////////// THIS IS DUMB AS SHIT
-                            as_standard_notation(&(temp_move as usize)),//////////////////////// THIS IS DUMB AS SHIT
-                        ),//////////////////////// THIS IS DUMB AS SHIT
-                     &calculate_all_possible_moves(move_piece(//////////////////////// THIS IS DUMB AS SHIT
-                        board.clone(),//////////////////////// THIS IS DUMB AS SHIT
-                        as_standard_notation(&position),//////////////////////// THIS IS DUMB AS SHIT
-                        as_standard_notation(&(temp_move as usize)),//////////////////////// THIS IS DUMB AS SHIT
-                    )),
-                    ) { match (state, piece.color()){
-                        (GameState::BlackCheck, Color::Black) => moves.push(as_standard_notation(&(temp_move as usize))),
-                        (GameState::WhiteCheck, Color::White) => moves.push(as_standard_notation(&(temp_move as usize))),
-                        (_, _) => ()
-                    }}
-                    //////////////////////// THIS IS DUMB AS SHIT
-
-                } else if file_move == 0 {
-                    moves.push(as_standard_notation(&(temp_move as usize)));
-                }
-            }
-        }
-    } else if directions[0].2 {
-        // If the moves are repeating i.e Queen, Bishop, Rook
-
-        for (file_move, rank_move, _) in directions {
-            for i in 1..8 {
-                // Calculate move coordinate
-                let temp_move = (i * (file_move + rank_move * 8)) + (position as i32);
-
-                // If the move is in bounds of the board
-                if move_in_bounds(temp_move, position, file_move) {
-                    // Check if occupied
-                    if board[temp_move as usize].is_some() {
-                        // Check occupying piece
-                        if board[temp_move as usize].unwrap().color() == piece.color() {
-                            break;
-                        } else {
-                            moves.push(as_standard_notation(&(temp_move as usize)));
-                            break;
-                        }
-                    } else {
-                        moves.push(as_standard_notation(&(temp_move as usize)));
-                        continue;
-                    }
-                } else {
-                    continue;
-                }
-            }
-        }
-    } else {
-        // If the moves are not repeating i.e King, Knight
-        // TODO
-        for (file_move, rank_move, _) in directions {
-            // Calculate move coordinate
-            let temp_move = (file_move + rank_move * 8) + (position as i32);
-            if move_in_bounds(temp_move, position, file_move) {
-                if board[temp_move as usize].is_some() {
-                    // Check occupying piece
-                    if board[temp_move as usize].unwrap().color() != piece.color() {
-                        moves.push(as_standard_notation(&(temp_move as usize)));
-                    }
-                } else {
-                    moves.push(as_standard_notation(&(temp_move as usize)));
-                }
-            }
-        }
-    }
-
-    if moves.len() > 0 {
-        Some(moves)
-    } else {
-        None
-    }
-}
-
-pub fn calculate_possible_moves_without_check(
     board: &[Option<Piece>; 64],
     position: String,
 ) -> Option<Vec<String>> {
