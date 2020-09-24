@@ -19,17 +19,18 @@ impl Color {
 pub struct Piece {
     color: Color,
     title: PieceType,
-    has_moved: bool,
+    pub has_moved: bool,
 }
 
 impl Piece {
-    pub fn new(color: Color, title: PieceType) -> Piece {
+    pub fn new(color: Color, title: PieceType, has_moved: bool) -> Piece {
         Piece {
             color,
             title,
-            has_moved: false,
+            has_moved
         }
     }
+    
 
     pub fn title(&self) -> PieceType {
         self.title
@@ -41,6 +42,10 @@ impl Piece {
 
     pub fn has_moved(&self) -> bool {
         self.has_moved
+    }
+
+    pub fn set_has_moved(&mut self) {
+        self.has_moved = true;
     }
 }
 #[derive(PartialEq, Debug, Copy, Clone)]
@@ -90,7 +95,7 @@ impl PieceType {
                 (-2, -1, false),
             ],
             PieceType::Rook => vec![(-1, 0, true), (1, 0, true), (0, -1, true), (0, 1, true)],
-            PieceType::Pawn => vec![(0, 1, false), (0, 2, false), (-1, 1, false), (-1, 1, false)],
+            PieceType::Pawn => vec![(0, 1, false), (0, 2, false), (-1, 1, false), (1, 1, false)],
         }
     }
 }
@@ -150,7 +155,7 @@ mod tests {
     #[test]
     fn get_piece_move_directions() {
         assert_eq!(
-            Piece::new(Color::White, PieceType::Rook).title.directions()[0],
+            Piece::new(Color::White, PieceType::Rook, false).title.directions()[0],
             (-1, 0, true)
         );
     }
