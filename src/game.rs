@@ -32,112 +32,85 @@ pub struct Game {
 impl Game {
     /// Initialises a new board with pieces.
     pub fn new() -> Game {
-        Game {
+        let mut game = Game {
             /* initialise board, set active colour to white, ... */
             state: GameState::InProgress,
             active_color: Color::White,
             board: generate_board(),
-            possible_moves: calculate_all_possible_moves(generate_board()),
-        }
+            possible_moves: HashMap::new(),
+        };
+        game.possible_moves = game.calculate_all_possible_moves();
+        game
     }
 
     pub fn new_with_board(board: [Option<Piece>; 64]) -> Game {
-        Game {
+        let mut game = Game {
             /* initialise board, set active colour to white, ... */
             state: GameState::InProgress,
             active_color: Color::White,
             board,
-            possible_moves: calculate_all_possible_moves(board),
-        }
+            possible_moves: HashMap::new(),
+        };
+        game.possible_moves = game.calculate_all_possible_moves();
+        game
     }
 
     /// If the current game state is InProgress and the move is legal,
     /// move a piece and return the resulting state of the game.
     pub fn make_move(&mut self, from: String, to: String) -> Option<GameState> {
-        let moves_option: Option<&Vec<String>> = self.possible_moves.get(&from);
-
         // If move is legal
-        if moves_option.is_some() && moves_option.unwrap().contains(&to) && self.state == GameState::InProgress &&  self.board[as_coordinate(&from)].unwrap().color() == self.active_color{
-            let mut piece = self.board[as_coordinate(&from)].unwrap();
+        if let Some(moves) = self.possible_moves.get(&from) {
+            if moves.contains(&to) {
+                let mut piece = self.board[as_coordinate(&from)].unwrap();
 
-            // Piece has Moved
-            piece.set_has_moved();
+                // Piece has Moved
+                piece.set_has_moved();
 
-            // If capturing move
-            if self.board[as_coordinate(&to)].is_some() {
-                self.board[as_coordinate(&to)] = Some(piece);
-                self.board[as_coordinate(&from)].take();
-            } else {
-                self.board[as_coordinate(&to)] = Some(piece);
-                self.board[as_coordinate(&from)].take();
-            }
-
-            // Move has been made, now switch colors
-            self.active_color = match self.active_color {
-                Color::Black => Color::White,
-                Color::White => Color::Black,
-            };
-
-            // Calculate all moves for new boardstate
-            self.possible_moves = calculate_all_possible_moves(self.board);
-
-            // If board is in check
-            if let Some(state) = board_in_check(self.board) {
-                // If checkmate
-                match state {
-                    GameState::WhiteCheck => {
-                        if self
-                            .possible_moves
-                            .get(&as_standard_notation(&find_kings(&self.board)[0]))
-                            .is_none()
-                        {
-                            return Some(GameState::WhiteCheckMate);
-                        }
-                    }
-                    GameState::BlackCheck => {
-                        if self
-                            .possible_moves
-                            .get(&as_standard_notation(&find_kings(&self.board)[1]))
-                            .is_none()
-                        {
-                            return Some(GameState::BlackCheckMate);
-                        }
-                    }
-                    _ => (),
+                // If capturing move
+                if self.board[as_coordinate(&to)].is_some() {
+                    self.board[as_coordinate(&to)] = Some(piece);
+                    self.board[as_coordinate(&from)].take();
+                } else {
+                    self.board[as_coordinate(&to)] = Some(piece);
+                    self.board[as_coordinate(&from)].take();
                 }
-                self.state = state;
-                return Some(state);
-            }
 
-            // If tie
-            // check possible moves for current color
-            for piece in self.possible_moves.keys(){
-                if self.board[as_coordinate(piece)].unwrap().color() == self.active_color{
-                    // Not check or tie
-                    self.state = GameState::InProgress;
-                    return Some(GameState::InProgress);
-                } 
-            }
+                // Move has been made, now switch colors
+                self.active_color = match self.active_color {
+                    Color::Black => Color::White,
+                    Color::White => Color::Black,
+                };
 
-            // Tie
-            self.state = GameState::Tie;
-            return Some(GameState::Tie);
+                // Calculate all moves for new boardstate
+                self.possible_moves = self.calculate_all_possible_moves();
 
-            /*let kings = find_kings(&self.board);
-            for king in kings{
-                if self
-                .possible_moves
-                .get(&as_standard_notation(&king))
-                .is_none(){
-                    self.state = GameState::Tie;
-                    return Some(GameState::Tie);
+                // If board is in check
+                if let Some(state) = board_in_check(self.board.clone()) {
+                    // If checkmate
+                    // check possible moves for current color
+                    if self.possible_moves.is_empty() {
+                        // Checkmate
+                        match state {
+                            GameState::WhiteCheck => {
+                                return Some(GameState::WhiteCheckMate);
+                            }
+                            GameState::BlackCheck => {
+                                return Some(GameState::BlackCheckMate);
+                            }
+                            _ => (),
+                        }
+                    } else {
+                        // Not checkmate
+                        self.state = state;
+                        return Some(state);
+                    }
                 }
-            } */
-            
 
-            
+                // Tie
+                self.state = GameState::Tie;
+                return Some(GameState::Tie);
+            }
         }
-
         // Impossible move
         None
     }
@@ -167,6 +140,26 @@ impl Game {
     pub fn get_board(&self) -> &[Option<Piece>; 64] {
         &self.board
     }
+
+    // Calculates all the possible moves for the given game and returns them as a hashmap
+    fn calculate_all_possible_moves(&mut self) -> HashMap<String, Vec<String>> {
+        let board = self.board;
+
+        let mut map: HashMap<String, Vec<String>> = HashMap::new();
+        for square_index in 0..64 {
+            if board[square_index].is_none() {
+                continue;
+            } else if board[square_index].unwrap().color() != self.active_color {
+                continue;
+            }
+            // Calculate moves for the given piece
+            let moves = calculate_possible_moves(&board, as_standard_notation(&square_index));
+            if moves.is_some() {
+                map.insert(as_standard_notation(&square_index), moves.unwrap());
+            }
+        }
+        map
+    }
 }
 
 // Returns a new board with the given move
@@ -184,28 +177,8 @@ fn board_from_move(mut board: [Option<Piece>; 64], from: usize, to: usize) -> [O
     board
 }
 
-fn find_kings(board: &[Option<Piece>; 64]) -> Vec<usize> {
-    let mut white_king_position = 0;
-    for square in 0..64 {
-        if let Some(piece) = board[square] {
-            if piece.title() == PieceType::King && piece.color() == Color::White {
-                white_king_position = square;
-            }
-        }
-    }
 
-    let mut black_king_position = 0;
-    for square in 0..64 {
-        if let Some(piece) = board[square] {
-            if piece.title() == PieceType::King && piece.color() == Color::Black {
-                black_king_position = square;
-            }
-        }
-    }
-
-    vec![white_king_position, black_king_position]
-}
-
+// calculates if the given board is in check and returns the type of check
 fn board_in_check(board: [Option<Piece>; 64]) -> Option<GameState> {
     let kings_positions = find_kings(&board);
 
@@ -237,7 +210,7 @@ fn board_in_check(board: [Option<Piece>; 64]) -> Option<GameState> {
                                     PieceType::Rook => return Some(check),
                                     _ => break,
                                 }
-                            } else if rank_move*i == king.color().forward() 
+                            } else if rank_move * i == king.color().forward()
                                 && piece.title() == PieceType::Pawn
                             {
                                 return Some(check);
@@ -278,19 +251,27 @@ fn board_in_check(board: [Option<Piece>; 64]) -> Option<GameState> {
     None
 }
 
-fn calculate_all_possible_moves(board: [Option<Piece>; 64]) -> HashMap<String, Vec<String>> {
-    let mut map: HashMap<String, Vec<String>> = HashMap::new();
-    for square_index in 0..64 {
-        if board[square_index].is_none() {
-            continue;
-        }
-        // Calculate moves for the given piece
-        let moves = calculate_possible_moves(&board, as_standard_notation(&square_index));
-        if moves.is_some() {
-            map.insert(as_standard_notation(&square_index), moves.unwrap());
+// finds and returns the position of the kings
+fn find_kings(board: &[Option<Piece>; 64]) -> Vec<usize> {
+    let mut white_king_position = 0;
+    for square in 0..64 {
+        if let Some(piece) = board[square] {
+            if piece.title() == PieceType::King && piece.color() == Color::White {
+                white_king_position = square;
+            }
         }
     }
-    map
+
+    let mut black_king_position = 0;
+    for square in 0..64 {
+        if let Some(piece) = board[square] {
+            if piece.title() == PieceType::King && piece.color() == Color::Black {
+                black_king_position = square;
+            }
+        }
+    }
+
+    vec![white_king_position, black_king_position]
 }
 
 // Calculates the possible moves for a piece
@@ -325,10 +306,7 @@ pub fn calculate_possible_moves(
                     // Straight move
                     } else if file_move == 0 && rank_move == 1 {
                         moves.push(as_standard_notation(&(temp_move as usize)));
-                    } else if file_move == 0
-                        && rank_move == 2
-                        && !piece.has_moved()
-                    {
+                    } else if file_move == 0 && rank_move == 2 && !piece.has_moved() {
                         moves.push(as_standard_notation(&(temp_move as usize)));
                     }
                 }
@@ -340,29 +318,31 @@ pub fn calculate_possible_moves(
         for (file_move, rank_move, _) in directions {
             for i in 1..8 {
                 // Calculate move coordinate
-                let temp_move = (i * (file_move + rank_move * 8)) + (position as i32);
+                let temp_move = (i * (file_move + (rank_move * 8))) + (position as i32);
 
                 // If the move is in bounds of the board
-                if move_in_bounds(temp_move, position, file_move) {
-                    if board_in_check(board_from_move(board.clone(), position, temp_move as usize))
-                        != Some(color_check(piece.color()))
-                    {
-                        // Check if occupied
-                        if board[temp_move as usize].is_some() {
-                            // Check occupying piece
-                            if board[temp_move as usize].unwrap().color() == piece.color() {
-                                break;
-                            } else {
-                                moves.push(as_standard_notation(&(temp_move as usize)));
-                                break;
-                            }
-                        } else {
+                if move_in_bounds(temp_move, position, file_move * i) {
+                    let would_check_self = board_in_check(board_from_move(
+                        board.clone(),
+                        position,
+                        temp_move as usize,
+                    )) == Some(color_check(piece.color()));
+
+                    // Check if occupied
+                    if board[temp_move as usize].is_some() {
+                        // Check occupying piece
+                        if board[temp_move as usize].unwrap().color() == piece.color() {
+                            break;
+                        } else if !would_check_self {
                             moves.push(as_standard_notation(&(temp_move as usize)));
-                            continue;
+                            break;
                         }
-                    } else {
+                    } else if !would_check_self {
+                        moves.push(as_standard_notation(&(temp_move as usize)));
                         continue;
                     }
+                } else {
+                    break;
                 }
             }
         }
@@ -395,8 +375,8 @@ pub fn calculate_possible_moves(
         None
     }
 }
-
-pub fn move_in_bounds(to: i32, from: usize, file_move: i32) -> bool {
+// Checks if the given move is in bounds of the board
+fn move_in_bounds(to: i32, from: usize, file_move: i32) -> bool {
     0 <= file_move + (from % 8) as i32 && file_move + (from % 8) as i32 <= 7 && to <= 63 && to >= 0
 }
 
@@ -438,6 +418,7 @@ pub fn as_standard_notation(input: &usize) -> String {
     file
 }
 
+// Standard Board generation
 fn generate_board() -> [Option<Piece>; 64] {
     [
         Some(Piece::new(Color::White, PieceType::Rook, false)),
@@ -628,25 +609,7 @@ mod tests {
         print!("{}", game);
     }
 
-    #[test]
-    fn is_check_possible() {
-        let mut game = Game::new();
-        game.make_move(String::from("E2"), String::from("E3"));
-        print!("{}", game);
-        game.make_move(String::from("A7"), String::from("A5"));
-        print!("{}", game);
-        game.make_move(String::from("D1"), String::from("H5"));
-        print!("{}", game);
-        game.make_move(String::from("A8"), String::from("A7"));
-        print!("{}", game);
-        game.make_move(String::from("F1"), String::from("C4"));
-        print!("{}", game);
-        game.make_move(String::from("B7"), String::from("B6"));
-        print!("{}", game);
-        game.make_move(String::from("H5"), String::from("F7"));
-        print!("{}", game);
-        assert_eq!(game.get_game_state(), GameState::BlackCheck);
-    }
+    
     #[test]
     fn king_cant_check_itself() {
         let mut game = Game::new();
@@ -664,10 +627,7 @@ mod tests {
         print!("{}", game);
         game.make_move(String::from("H5"), String::from("F7"));
         print!("{}", game);
-        assert_eq!(
-            game.make_move(String::from("E8"), String::from("F7")),
-            None
-        );
+        assert_eq!(game.make_move(String::from("E8"), String::from("F7")), None);
     }
 
     #[test]
@@ -684,12 +644,14 @@ mod tests {
         game.make_move(String::from("F1"), String::from("C4"));
         print!("{}", game);
         game.make_move(String::from("B7"), String::from("B6"));
-        print!("{}", game);
+        // print!("{}", game);
         assert_eq!(
             game.make_move(String::from("H5"), String::from("F7")),
             Some(GameState::BlackCheckMate)
         );
         print!("{}", game);
+
+        
     }
 
     #[test]
@@ -704,11 +666,11 @@ mod tests {
     }
 
     #[test]
-    fn pawns_can_attack_diagonally(){
+    fn pawns_can_attack_diagonally() {
         let mut game = Game::new();
         game.make_move(String::from("E2"), String::from("E4"));
         print!("{}", game);
-        
+
         game.make_move(String::from("A7"), String::from("A5"));
         print!("{}", game);
         game.make_move(String::from("E4"), String::from("E5"));
@@ -719,16 +681,18 @@ mod tests {
         print!("{}", game);
         game.make_move(String::from("A4"), String::from("A3"));
         print!("{}", game);
-        assert_eq!(game.make_move(String::from("E6"), String::from("F7")), Some(GameState::BlackCheck));
+        assert_eq!(
+            game.make_move(String::from("E6"), String::from("F7")),
+            Some(GameState::BlackCheck)
+        );
         print!("{}", game);
-        
     }
 
     #[test]
-    fn tie_is_possible(){
+    fn tie_is_possible() {
         let mut game = Game::new_with_board([
-            Some(Piece::new(Color::White, PieceType::King, false)),
             None,
+            Some(Piece::new(Color::White, PieceType::King, false)),
             None,
             None,
             None,
@@ -792,11 +756,21 @@ mod tests {
             Some(Piece::new(Color::Black, PieceType::King, false)),
             None,
         ]);
-        game.active_color = Color::Black;
         
+        game.make_move(String::from("B1"), String::from("A1"));
+        print!("{}", game);
         game.make_move(String::from("B3"), String::from("B2"));
         print!("{}", game);
         assert_eq!(game.get_game_state(), GameState::Tie);
+    }
 
+    #[test]
+    fn pieces_cant_move_trough_friendlies() {
+        let mut game = Game::new();
+        game.make_move(String::from("C1"), String::from("C3"));
+        print!("{}", game);
+        game.active_color = Color::Black;
+        game.make_move(String::from("D8"), String::from("D2"));
+        print!("{}", game);
     }
 }

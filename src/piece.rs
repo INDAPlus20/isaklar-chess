@@ -27,10 +27,9 @@ impl Piece {
         Piece {
             color,
             title,
-            has_moved
+            has_moved,
         }
     }
-    
 
     pub fn title(&self) -> PieceType {
         self.title
@@ -155,7 +154,9 @@ mod tests {
     #[test]
     fn get_piece_move_directions() {
         assert_eq!(
-            Piece::new(Color::White, PieceType::Rook, false).title.directions()[0],
+            Piece::new(Color::White, PieceType::Rook, false)
+                .title
+                .directions()[0],
             (-1, 0, true)
         );
     }
