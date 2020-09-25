@@ -110,7 +110,20 @@ impl Game {
             }
 
             // If tie
-            let kings = find_kings(&self.board);
+            // check possible moves for current color
+            for piece in self.possible_moves.keys(){
+                if self.board[as_coordinate(piece)].unwrap().color() == self.active_color{
+                    // Not check or tie
+                    self.state = GameState::InProgress;
+                    return Some(GameState::InProgress);
+                } 
+            }
+
+            // Tie
+            self.state = GameState::Tie;
+            return Some(GameState::Tie);
+
+            /*let kings = find_kings(&self.board);
             for king in kings{
                 if self
                 .possible_moves
@@ -119,12 +132,10 @@ impl Game {
                     self.state = GameState::Tie;
                     return Some(GameState::Tie);
                 }
-            }
+            } */
             
 
-            // Not check or tie
-            self.state = GameState::InProgress;
-            return Some(GameState::InProgress);
+            
         }
 
         // Impossible move
@@ -523,7 +534,8 @@ impl fmt::Display for Game {
             }
             write!(f, "{} \n", rank + 1)?;
         }
-        write!(f, "\n")
+        write!(f, "\n")?;
+        writeln!(f, "Turn: {:?}", self.active_color)
     }
 }
 
@@ -654,7 +666,7 @@ mod tests {
         print!("{}", game);
         assert_eq!(
             game.make_move(String::from("E8"), String::from("F7")),
-            Some(GameState::BlackCheck)
+            None
         );
     }
 
@@ -696,9 +708,16 @@ mod tests {
         let mut game = Game::new();
         game.make_move(String::from("E2"), String::from("E4"));
         print!("{}", game);
+        
+        game.make_move(String::from("A7"), String::from("A5"));
+        print!("{}", game);
         game.make_move(String::from("E4"), String::from("E5"));
         print!("{}", game);
+        game.make_move(String::from("A5"), String::from("A4"));
+        print!("{}", game);
         game.make_move(String::from("E5"), String::from("E6"));
+        print!("{}", game);
+        game.make_move(String::from("A4"), String::from("A3"));
         print!("{}", game);
         assert_eq!(game.make_move(String::from("E6"), String::from("F7")), Some(GameState::BlackCheck));
         print!("{}", game);
@@ -773,7 +792,7 @@ mod tests {
             Some(Piece::new(Color::Black, PieceType::King, false)),
             None,
         ]);
-        
+        game.active_color = Color::Black;
         
         game.make_move(String::from("B3"), String::from("B2"));
         print!("{}", game);
