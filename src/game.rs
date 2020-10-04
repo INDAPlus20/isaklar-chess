@@ -8,7 +8,7 @@ pub enum GameState {
     WhiteCheck,
     BlackCheckMate,
     WhiteCheckMate,
-    Tie,
+    Tie
 }
 fn color_check(color: Color) -> GameState {
     match color {
@@ -275,7 +275,7 @@ fn find_kings(board: &[Option<Piece>; 64]) -> Vec<usize> {
 }
 
 // Calculates the possible moves for a piece
-pub fn calculate_possible_moves(
+fn calculate_possible_moves(
     board: &[Option<Piece>; 64],
     position: String,
 ) -> Option<Vec<String>> {
@@ -381,7 +381,7 @@ fn move_in_bounds(to: i32, from: usize, file_move: i32) -> bool {
 }
 
 // Converts standard chess notation into indexable values
-pub fn as_coordinate(input: &String) -> usize {
+ fn as_coordinate(input: &String) -> usize {
     let chars: Vec<char> = input.chars().collect();
     let file = match chars[0] {
         'A' => 0,
@@ -399,7 +399,7 @@ pub fn as_coordinate(input: &String) -> usize {
     (rank + file) as usize
 }
 
-pub fn as_standard_notation(input: &usize) -> String {
+ fn as_standard_notation(input: &usize) -> String {
     let mut file = match input % 8 {
         0 => "A".to_string(),
         1 => "B".to_string(),
