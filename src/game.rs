@@ -105,10 +105,11 @@ impl Game {
                         return Some(state);
                     }
                 }
-
+                if self.possible_moves.is_empty() {
                 // Tie
                 self.state = GameState::Tie;
                 return Some(GameState::Tie);
+                }
             }
         }
         // Impossible move
@@ -772,5 +773,13 @@ mod tests {
         game.active_color = Color::Black;
         game.make_move(String::from("D8"), String::from("D2"));
         print!("{}", game);
+    }
+
+    #[test]
+    fn game_doesnt_return_tie(){
+        let mut game = Game::new();
+        game.make_move(String::from("E2"), String::from("E3"));
+        print!("{}", game);
+        assert_eq!(game.get_game_state(), GameState::InProgress);
     }
 }
